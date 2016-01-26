@@ -40,7 +40,7 @@ def up_user(service,type):
         """,[service['transfer'],service['service_type'],service['uid']])
     elif type in [1,2] :
         cur.execute("""
-        update user 
+        update user set
         u=0,
         d=0,
         month_flows=%s,
