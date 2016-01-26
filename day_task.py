@@ -55,7 +55,7 @@ def up_flow_user(service):
     conn = MySQL.db()
     cur = conn.cursor()
     cur.execute("""
-    update user 
+    update user set
     u=0,
     d=0,
     service_type=3
