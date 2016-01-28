@@ -78,7 +78,7 @@ def run():
             up_month_user(service,user['service_type'])
         else :
             service = get_service(user['uid'],[3])
-            if user['service_type'] in [1,2]:
+            if service and user['service_type'] in [1,2]:
                 up_flow_user(service)
     cur.close()
     conn.close()
