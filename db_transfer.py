@@ -48,27 +48,37 @@ class DbTransfer(object):
         query_head = 'UPDATE user'
         query_sub_when = ''
         query_sub_when2 = ''
+        query_sub_when3 = ''
+        query_sub_when4 = ''
         query_sub_in = None
         last_time = time.time()
         for id in dt_transfer.keys():
             query_sub_when += ' WHEN %s THEN u+%s' % (id, dt_transfer[id][0])
             query_sub_when2 += ' WHEN %s THEN d+%s' % (id, dt_transfer[id][1])
+            query_sub_when3 += ' WHEN %s THEN month_u+%s' % (id, dt_transfer[id][0])
+            query_sub_when4 += ' WHEN %s THEN month_d+%s' % (id, dt_transfer[id][1])
             if query_sub_in is not None:
                 query_sub_in += ',%s' % id
             else:
                 query_sub_in = '%s' % id
-        if query_sub_when == '':
+        if query_sub_when == '' and query_sub_when3 == '':
             return
         query_sql = query_head + ' SET u = CASE port' + query_sub_when + \
                     ' END, d = CASE port' + query_sub_when2 + \
                     ' END, t = ' + str(int(last_time)) + \
                     ',last_login_server_id = ' +str(int(Config.SERVER_ID)) + \
-                    ' WHERE port IN (%s)' % query_sub_in
+                    ' WHERE service_type in (0,3) and port IN (%s)' % query_sub_in
+        query_sql2 = query_head + ' SET month_u = CASE port' + query_sub_when3 + \
+                    ' END, month_d = CASE port' + query_sub_when4 + \
+                    ' END, t = ' + str(int(last_time)) + \
+                    ',last_login_server_id = ' +str(int(Config.SERVER_ID)) + \
+                    ' WHERE service_type in (1,2) and port IN (%s)' % query_sub_in           
         #print query_sql
         conn = cymysql.connect(host=Config.MYSQL_HOST, port=Config.MYSQL_PORT, user=Config.MYSQL_USER,
                                passwd=Config.MYSQL_PASS, db=Config.MYSQL_DB, charset='utf8')
         cur = conn.cursor()
         cur.execute(query_sql)
+        cur.execute(query_sql2)
         cur.close()
         conn.commit()
         conn.close()
@@ -79,7 +89,7 @@ class DbTransfer(object):
         conn = cymysql.connect(host=Config.MYSQL_HOST, port=Config.MYSQL_PORT, user=Config.MYSQL_USER,
                                passwd=Config.MYSQL_PASS, db=Config.MYSQL_DB, charset='utf8')
         cur = conn.cursor()
-        cur.execute("SELECT port, u, d, transfer_enable, passwd, switch, enable,service_type,month_flows FROM user")
+        cur.execute("SELECT port, u, d, transfer_enable, passwd, switch, enable,service_type,month_flows,month_u,month_d FROM user")
         rows = []
         for r in cur.fetchall():
             rows.append(list(r))
@@ -105,7 +115,7 @@ class DbTransfer(object):
                     logging.info('db stop server at port [%s] reason: out bandwidth' % (row[0]))
                     ServerPool.get_instance().del_server(row[0])
                     #包月限流超额停止服务
-                elif row[1] + row[2] >= row[8] and (row[7] in [1]):
+                elif row[10] + row[9] >= row[8] and (row[7] in [1]):
                     #stop out bandwidth user
                     logging.info('db stop server at port [%s] reason: out bandwidth' % (row[0]))
                     ServerPool.get_instance().del_server(row[0])
@@ -130,7 +140,7 @@ class DbTransfer(object):
                             logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
                             ServerPool.get_instance().new_server(row[0], row[4])
 #                           #包月限流流量
-                        if  row[7] == 1 and row[1] + row[2] < row[8]:
+                        if  row[7] == 1 and row[10] + row[9] < row[8]:
                             logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
                             ServerPool.get_instance().new_server(row[0], row[4])
                             #包月不限流量
@@ -139,7 +149,7 @@ class DbTransfer(object):
                             ServerPool.get_instance().new_server(row[0], row[4])  
                     if Config.SERVER_TYPE=='VIP':
                             #固定流量
-                        if  row[7] == 1 and row[1] + row[2] < row[8]:
+                        if  row[7] == 1 and row[10] + row[9] < row[8]:
                             logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
                             ServerPool.get_instance().new_server(row[0], row[4])
                             #包月限流流量
