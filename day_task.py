@@ -73,7 +73,7 @@ def run():
     for user in cur.fetchall():
         service = get_service(user['uid'],[1,2])
         #如果当前用户包含包月服务
-        if service and date_test(service['start_date'],service['end_date'],today,days):
+        if service and (date_test(service['start_date'],service['end_date'],today,days) or user['service_type'] in [0,3]):
 #             重新初始化包月流量
             up_month_user(service,user['service_type'])
         else :
