@@ -26,41 +26,30 @@ def date_test(d1,d2,today,days):
         if d1.day==today.day or d1.day>=days:
             return True
     return False
+#包月月结
 def up_month_user(service,type):
     conn = MySQL.db()
     cur = conn.cursor()
-    if type in [0,3]:
-        cur.execute("""
-        update user 
-        set transfer_enable= transfer_enable-u-d,
-        u=0,
-        d=0,
-        month_flows=%s,
-        service_type=%s
-        where uid=%s
-        """,[service['transfer'],service['service_type'],service['uid']])
-    elif type in [1,2] :
-        cur.execute("""
-        update user set
-        u=0,
-        d=0,
-        month_flows=%s,
-        service_type=%s
-        where uid=%s
-        """,[service['transfer'],service['service_type'],service['uid']])
+    cur.execute("""
+    update user 
+    set 
+    month_u=0,
+    month_d=0,
+    month_flows=%s,
+    service_type=%s
+    where uid=%s
+    """,[service['transfer'],service['service_type'],service['uid']])
     conn.commit()
     cur.close()
     conn.close()
-def up_flow_user(service):
+def up_flow_user(uid,type):
     conn = MySQL.db()
     cur = conn.cursor()
     cur.execute("""
     update user set
-    u=0,
-    d=0,
-    service_type=3
+    service_type=%s
     where uid=%s
-    """,[service['uid']])
+    """,[type,uid])
     conn.commit()
     cur.close()
     conn.close()
@@ -73,13 +62,16 @@ def run():
     for user in cur.fetchall():
         service = get_service(user['uid'],[1,2])
         #如果当前用户包含包月服务
-        if service and (date_test(service['start_date'],service['end_date'],today,days) or user['service_type'] in [0,3]):
+        if service and (date_test(service['start_date'],service['end_date'],today,days)):
 #             重新初始化包月流量
             up_month_user(service,user['service_type'])
-        else :
+        #包月服务不存在或者服务存在且为固定流量包月用完的需要更新为固定流量
+        elif not service or (service and user['month_u']+user['month_d']>=user['month_flows'] and user['service_type']==1):
             service = get_service(user['uid'],[3])
             if service and user['service_type'] in [1,2]:
-                up_flow_user(service)
+                up_flow_user(3,user['uid'])
+            else :
+                up_flow_user(0,user['uid'])
     cur.close()
     conn.close()
 if __name__ == '__main__':
