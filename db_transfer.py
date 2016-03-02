@@ -89,7 +89,7 @@ class DbTransfer(object):
         conn = cymysql.connect(host=Config.MYSQL_HOST, port=Config.MYSQL_PORT, user=Config.MYSQL_USER,
                                passwd=Config.MYSQL_PASS, db=Config.MYSQL_DB, charset='utf8')
         cur = conn.cursor()
-        cur.execute("SELECT port, u, d, transfer_enable, passwd, switch, enable,service_type,month_flows,month_u,month_d FROM user")
+        cur.execute("SELECT port, u, d, transfer_enable, passwd, switch, enable,service_type,month_flows,month_u,month_d,active_time FROM user")
         rows = []
         for r in cur.fetchall():
             rows.append(list(r))
@@ -104,33 +104,44 @@ class DbTransfer(object):
     #修改下面的逻辑要小心包含跨线程访问
         for row in rows:
             if ServerPool.get_instance().server_is_run(row[0]) is True:
-                #状态为0时关闭服务
-                if row[5] == 0 or row[6] == 0:
-                    #stop disable or switch off user
-                    logging.info('db stop server at port [%s] reason: disable' % (row[0]))
-                    ServerPool.get_instance().del_server(row[0])
-                    #固定流量超额停止服务
-                elif row[1] + row[2] >= row[3] and (row[7] in [0,3]):
-                    #stop out bandwidth user
-                    logging.info('db stop server at port [%s] reason: out bandwidth' % (row[0]))
-                    ServerPool.get_instance().del_server(row[0])
-                    #包月限流超额停止服务
-                elif row[10] + row[9] >= row[8] and (row[7] in [1]):
-                    #stop out bandwidth user
-                    logging.info('db stop server at port [%s] reason: out bandwidth' % (row[0]))
-                    ServerPool.get_instance().del_server(row[0])
-#                 elif (row[7] in [2,1]) and time.time() > row[8]*24*60*60+row[9]:
-#                     logging.info('db stop server at port [%s] reason: Service maturity' % (row[0]))
-#                     ServerPool.get_instance().del_server(row[0])
-                    #修改密码停止服务
-                if ServerPool.get_instance().tcp_servers_pool[row[0]]._config['password'] != row[4]:
-                    #password changed
-                    logging.info('db stop server at port [%s] reason: password changed' % (row[0]))
-                    ServerPool.get_instance().del_server(row[0]) 
-                    #如果当前节点是VIP且当前用户没有充值过则停止服务
-                if Config.SERVER_TYPE=='VIP' and row[7] == 0:
-                    ServerPool.get_instance().del_server(row[0])
-                    
+                if Config.SERVER_TYPE=='SIGN':
+                    #状态为0时关闭服务
+                    if row[5] == 0 or row[6] == 0:
+                        #stop disable or switch off user
+                        logging.info('db stop server at port [%s] reason: disable' % (row[0]))
+                        ServerPool.get_instance().del_server(row[0])
+                    if row[11]<=time.time():
+                        #stop disable or switch off user
+                        logging.info('db stop server at port [%s] reason: disable' % (row[0]))
+                        ServerPool.get_instance().del_server(row[0])
+                else :
+                    #状态为0时关闭服务
+                    if row[5] == 0 or row[6] == 0:
+                        #stop disable or switch off user
+                        logging.info('db stop server at port [%s] reason: disable' % (row[0]))
+                        ServerPool.get_instance().del_server(row[0])
+                        #固定流量超额停止服务
+                    elif row[1] + row[2] >= row[3] and (row[7] in [0,3]):
+                        #stop out bandwidth user
+                        logging.info('db stop server at port [%s] reason: out bandwidth' % (row[0]))
+                        ServerPool.get_instance().del_server(row[0])
+                        #包月限流超额停止服务
+                    elif row[10] + row[9] >= row[8] and (row[7] in [1]):
+                        #stop out bandwidth user
+                        logging.info('db stop server at port [%s] reason: out bandwidth' % (row[0]))
+                        ServerPool.get_instance().del_server(row[0])
+    #                 elif (row[7] in [2,1]) and time.time() > row[8]*24*60*60+row[9]:
+    #                     logging.info('db stop server at port [%s] reason: Service maturity' % (row[0]))
+    #                     ServerPool.get_instance().del_server(row[0])
+                        #修改密码停止服务
+                    if ServerPool.get_instance().tcp_servers_pool[row[0]]._config['password'] != row[4]:
+                        #password changed
+                        logging.info('db stop server at port [%s] reason: password changed' % (row[0]))
+                        ServerPool.get_instance().del_server(row[0]) 
+                        #如果当前节点是VIP且当前用户没有充值过则停止服务
+                    if Config.SERVER_TYPE=='VIP' and row[7] == 0:
+                        ServerPool.get_instance().del_server(row[0])
+                  
             else:
                 if row[5] == 1 and row[6] == 1 :
                     
@@ -158,6 +169,10 @@ class DbTransfer(object):
                             ServerPool.get_instance().new_server(row[0], row[4])  
                             #包月不限流量
                         if row[7]==3 and row[1] + row[2] < row[3]:
+                            logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
+                            ServerPool.get_instance().new_server(row[0], row[4]) 
+                    if Config.SERVER_TYPE=='SIGN':
+                        if row[11]>time.time():
                             logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
                             ServerPool.get_instance().new_server(row[0], row[4]) 
     @staticmethod
