@@ -57,11 +57,13 @@ class DbTransfer(object):
             query_sub_when2 += ' WHEN %s THEN d+%s' % (id, dt_transfer[id][1])
             query_sub_when3 += ' WHEN %s THEN month_u+%s' % (id, dt_transfer[id][0])
             query_sub_when4 += ' WHEN %s THEN month_d+%s' % (id, dt_transfer[id][1])
+            query_sub_when5 += ' WHEN %s THEN sign_u+%s' % (id, dt_transfer[id][0])
+            query_sub_when6 += ' WHEN %s THEN sign_d+%s' % (id, dt_transfer[id][1])
             if query_sub_in is not None:
                 query_sub_in += ',%s' % id
             else:
                 query_sub_in = '%s' % id
-        if query_sub_when == '' and query_sub_when3 == '':
+        if query_sub_when == '' and query_sub_when3 == '' and query_sub_when5== '':
             return
         query_sql = query_head + ' SET u = CASE port' + query_sub_when + \
                     ' END, d = CASE port' + query_sub_when2 + \
@@ -72,13 +74,19 @@ class DbTransfer(object):
                     ' END, month_d = CASE port' + query_sub_when4 + \
                     ' END, t = ' + str(int(last_time)) + \
                     ',last_login_server_id = ' +str(int(Config.SERVER_ID)) + \
-                    ' WHERE service_type in (1,2) and port IN (%s)' % query_sub_in           
+                    ' WHERE service_type in (1,2) and port IN (%s)' % query_sub_in       
+        query_sql3 = query_head + ' SET sign_u = CASE port' + query_sub_when5 + \
+                    ' END, sign_d = CASE port' + query_sub_when6 + \
+                    ' END, t = ' + str(int(last_time)) + \
+                    ',last_login_server_id = ' +str(int(Config.SERVER_ID)) + \
+                    ' WHERE service_type = 0 and port IN (%s)' % query_sub_in          
         #print query_sql
         conn = cymysql.connect(host=Config.MYSQL_HOST, port=Config.MYSQL_PORT, user=Config.MYSQL_USER,
                                passwd=Config.MYSQL_PASS, db=Config.MYSQL_DB, charset='utf8')
         cur = conn.cursor()
         cur.execute(query_sql)
-        cur.execute(query_sql2)
+        if Config.SERVER_TYPE=='SIGN' :
+            cur.execute(query_sql3)
         cur.close()
         conn.commit()
         conn.close()
@@ -89,7 +97,15 @@ class DbTransfer(object):
         conn = cymysql.connect(host=Config.MYSQL_HOST, port=Config.MYSQL_PORT, user=Config.MYSQL_USER,
                                passwd=Config.MYSQL_PASS, db=Config.MYSQL_DB, charset='utf8')
         cur = conn.cursor()
-        cur.execute("SELECT port, u, d, transfer_enable, passwd, switch, enable,service_type,month_flows,month_u,month_d,active_time FROM user")
+        cur.execute("""
+            SELECT port, 
+            u, d, transfer_enable,
+             passwd, switch, 
+             enable,service_type,
+             month_flows,month_u,
+             month_d,active_time,
+             sign_u ,sign_d,sign_total
+             FROM user""")
         rows = []
         for r in cur.fetchall():
             rows.append(list(r))
@@ -104,13 +120,13 @@ class DbTransfer(object):
     #修改下面的逻辑要小心包含跨线程访问
         for row in rows:
             if ServerPool.get_instance().server_is_run(row[0]) is True:
-                if Config.SERVER_TYPE=='SIGN':
+                if Config.SERVER_TYPE=='SIGN' and row[7] in [0]:
                     #状态为0时关闭服务
                     if row[5] == 0 or row[6] == 0:
                         #stop disable or switch off user
                         logging.info('db stop server at port [%s] reason: disable' % (row[0]))
                         ServerPool.get_instance().del_server(row[0])
-                    if row[11]<=time.time():
+                    if row[11]<=time.time() or row[12]+row[13]>=row[14]:
                         #stop disable or switch off user
                         logging.info('db stop server at port [%s] reason: disable' % (row[0]))
                         ServerPool.get_instance().del_server(row[0])
@@ -172,7 +188,7 @@ class DbTransfer(object):
                             logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
                             ServerPool.get_instance().new_server(row[0], row[4]) 
                     if Config.SERVER_TYPE=='SIGN':
-                        if row[11]>time.time():
+                        if row[11]>time.time() and row[12]+row[13]<row[14]:
                             logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
                             ServerPool.get_instance().new_server(row[0], row[4]) 
     @staticmethod
