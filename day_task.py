@@ -59,7 +59,10 @@ def run():
     cur.execute("SELECT * FROM user where switch=1 and enable=1")
     today = datetime.datetime.now()
     days = calendar.monthrange(today.year, today.month)[1]
-    for user in cur.fetchall():
+    users = cur.fetchall()
+    cur.close()
+    conn.close()
+    for user in users:
         service = get_service(user['uid'],[1,2])
         #如果当前用户包含包月服务
         if service and (date_test(service['start_date'],service['end_date'],today,days)):
@@ -72,7 +75,5 @@ def run():
                 up_flow_user(3,user['uid'])
             else :
                 up_flow_user(0,user['uid'])
-    cur.close()
-    conn.close()
 if __name__ == '__main__':
     run()
