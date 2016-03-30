@@ -191,6 +191,17 @@ class DbTransfer(object):
                         if row[11]>time.time() and row[12]+row[13]<row[14]:
                             logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
                             ServerPool.get_instance().new_server(row[0], row[4]) 
+                        if  row[7] == 1 and row[10] + row[9] < row[8]:
+                            logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
+                            ServerPool.get_instance().new_server(row[0], row[4])
+                            #包月限流流量
+                        if row[7]==2 :
+                            logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
+                            ServerPool.get_instance().new_server(row[0], row[4])  
+                            #包月不限流量
+                        if row[7]==3 and row[1] + row[2] < row[3]:
+                            logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
+                            ServerPool.get_instance().new_server(row[0], row[4]) 
     @staticmethod
     def thread_db():
         import socket
