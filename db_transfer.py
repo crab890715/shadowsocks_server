@@ -50,6 +50,8 @@ class DbTransfer(object):
         query_sub_when2 = ''
         query_sub_when3 = ''
         query_sub_when4 = ''
+        query_sub_when5 = ''
+        query_sub_when6 = ''
         query_sub_in = None
         last_time = time.time()
         for id in dt_transfer.keys():
@@ -85,6 +87,7 @@ class DbTransfer(object):
                                passwd=Config.MYSQL_PASS, db=Config.MYSQL_DB, charset='utf8')
         cur = conn.cursor()
         cur.execute(query_sql)
+        cur.execute(query_sql2)
         if Config.SERVER_TYPE=='SIGN' :
             cur.execute(query_sql3)
         cur.close()
