@@ -201,7 +201,7 @@ class DbTransfer(object):
                         if row[7]==2 :
                             logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
                             ServerPool.get_instance().new_server(row[0], row[4])  
-                            #包月不限流量
+                            #包月不限流量 
                         if row[7]==3 and row[1] + row[2] < row[3]:
                             logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
                             ServerPool.get_instance().new_server(row[0], row[4]) 
