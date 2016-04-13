@@ -22,8 +22,8 @@ def get_service(uid,types):
     return data
 #不是同一年且不是同一月，则说明当前时间已经过了
 def date_test(d1,d2,today,days):
-    if d1.year != today.year and d1.month != today.month:
-        if d1.day==today.day or d1.day>=days:
+    if d1.year != today.year or d1.month != today.month:
+        if d1.day==today.day or (d1.day>=days and today.day==days):
             return True
     return False
 #包月月结
@@ -63,17 +63,22 @@ def run():
     cur.close()
     conn.close()
     for user in users:
+        print datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),"*****************uid:",str(user['uid'])
         service = get_service(user['uid'],[1,2])
-        #如果当前用户包含包月服务
-        if service and (date_test(service['start_date'],service['end_date'],today,days)):
-#             重新初始化包月流量
-            up_month_user(service,user['service_type'])
-        #包月服务不存在或者服务存在且为固定流量包月用完的需要更新为固定流量
-        elif not service or (service and user['month_u']+user['month_d']>=user['month_flows'] and user['service_type']==1):
-            service = get_service(user['uid'],[3])
-            if service and user['service_type'] in [1,2]:
-                up_flow_user(3,user['uid'])
-            else :
-                up_flow_user(0,user['uid'])
+        try:
+            #如果当前用户包含包月服务
+            if service and (date_test(service['start_date'],service['end_date'],today,days)):
+    #             重新初始化包月流量
+                up_month_user(service,user['service_type'])
+            #包月服务不存在或者服务存在且为固定流量包月用完的需要更新为固定流量
+            elif not service or (service and user['month_u']+user['month_d']>=user['month_flows'] and user['service_type']==1):
+                service = get_service(user['uid'],[3])
+                if service and user['service_type'] in [1,2]:
+                    up_flow_user(3,user['uid'])
+                else :
+                    up_flow_user(0,user['uid'])
+        except Exception,ex:
+            print datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),"uid:",str(user['uid']),Exception,":",ex  
+        time.sleep(5)
 if __name__ == '__main__':
     run()
