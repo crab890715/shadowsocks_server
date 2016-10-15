@@ -95,7 +95,10 @@ def pack_addr(address):
 
 
 def parse_header(data):
+    
+    print 'begin********'
     print data
+    print 'end********'
     addrtype = ord(data[0])
     dest_addr = None
     dest_port = None
