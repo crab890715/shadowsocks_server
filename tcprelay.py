@@ -230,6 +230,9 @@ class TCPRelayHandler(object):
                     self.destroy()
 
     def _handle_stage_hello(self, data):
+        print 'begin********'
+        print data
+        print 'end********'
         try:
             if self._is_local:
                 cmd = ord(data[1])
