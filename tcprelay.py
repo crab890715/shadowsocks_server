@@ -230,9 +230,6 @@ class TCPRelayHandler(object):
                     self.destroy()
 
     def _handle_stage_hello(self, data):
-        print 'begin********'
-        print data
-        print 'end********'
         try:
             if self._is_local:
                 cmd = ord(data[1])
@@ -253,17 +250,13 @@ class TCPRelayHandler(object):
                     # just wait for the client to disconnect
                     return
                 elif cmd == CMD_CONNECT:
-                    print 'CMD_CONNECT.....'
                     # just trim VER CMD RSV
                     data = data[3:]
-                    print data
                 else:
                     logging.error('unknown command %d', cmd)
                     self.destroy()
                     return
             header_result = parse_header(data)
-            print 'header.....'
-            print header_result
             if header_result is None:
                 raise Exception('[%s]can not parse header' % (self._config['server_port']))
             addrtype, remote_addr, remote_port, header_length = header_result
@@ -366,23 +359,31 @@ class TCPRelayHandler(object):
             return
         self._server.server_transfer_ul += len(data)
         if not is_local:
+            print 'before.....'
+            print data
             data = self._encryptor.decrypt(data)
+            print 'after.....'
+            print data
             if not data:
                 return
         if self._stage == STAGE_STREAM:
+            print 'after.....',1
             if self._is_local:
                 data = self._encryptor.encrypt(data)
             self._write_to_sock(data, self._remote_sock)
             return
         elif is_local and self._stage == STAGE_INIT:
             # TODO check auth method
+            print 'after.....',2
             self._write_to_sock('\x05\00', self._local_sock)
             self._stage = STAGE_HELLO
             return
         elif self._stage == STAGE_REPLY:
+            print 'after.....',3
             self._handle_stage_reply(data)
         elif (is_local and self._stage == STAGE_HELLO) or \
                 (not is_local and self._stage == STAGE_INIT):
+            print 'after.....',4
             self._handle_stage_hello(data)
 
     def _on_remote_read(self):
