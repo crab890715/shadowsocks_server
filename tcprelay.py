@@ -237,6 +237,7 @@ class TCPRelayHandler(object):
             if self._is_local:
                 cmd = ord(data[1])
                 if cmd == CMD_UDP_ASSOCIATE:
+                    print 'CMD_UDP_ASSOCIATE.....'
                     logging.debug('UDP associate')
                     if self._local_sock.family == socket.AF_INET6:
                         header = '\x05\x00\x00\x04'
@@ -252,13 +253,17 @@ class TCPRelayHandler(object):
                     # just wait for the client to disconnect
                     return
                 elif cmd == CMD_CONNECT:
+                    print 'CMD_CONNECT.....'
                     # just trim VER CMD RSV
                     data = data[3:]
+                    print data
                 else:
                     logging.error('unknown command %d', cmd)
                     self.destroy()
                     return
             header_result = parse_header(data)
+            print 'header.....'
+            print header_result
             if header_result is None:
                 raise Exception('[%s]can not parse header' % (self._config['server_port']))
             addrtype, remote_addr, remote_port, header_length = header_result
