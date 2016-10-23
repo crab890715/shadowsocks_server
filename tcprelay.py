@@ -360,10 +360,8 @@ class TCPRelayHandler(object):
         self._server.server_transfer_ul += len(data)
         if not is_local:
             print 'before.....'
-            print data
             data = self._encryptor.decrypt(data)
             print 'after.....'
-            print data
             if not data:
                 return
         if self._stage == STAGE_STREAM:
