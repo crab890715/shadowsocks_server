@@ -325,6 +325,7 @@ class TCPRelayHandler(object):
                         remote_sock = self._create_remote_socket(remote_addr,
                                                                  remote_port)
                         try:
+                            print "远程IP:",remote_addr, remote_port
                             remote_sock.connect((remote_addr, remote_port))
                         except (OSError, IOError) as e:
                             if eventloop.errno_from_exception(e) == \
