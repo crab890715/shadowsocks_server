@@ -159,7 +159,8 @@ class DbTransfer(object):
                         ServerPool.get_instance().del_server(row[0]) 
                         #如果当前节点是VIP且当前用户没有充值过则停止服务
                     if Config.SERVER_TYPE=='VIP' and row[7] == 0:
-                        ServerPool.get_instance().del_server(row[0])
+                        if not (row[11]>time.time() and row[12]+row[13]<row[14]):
+                            ServerPool.get_instance().del_server(row[0])
                   
             else:
                 if row[5] == 1 and row[6] == 1 :
@@ -190,6 +191,9 @@ class DbTransfer(object):
                         if row[7]==3 and row[1] + row[2] < row[3]:
                             logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
                             ServerPool.get_instance().new_server(row[0], row[4]) 
+                            #签到
+                        if row[11]>time.time() and row[12]+row[13]<row[14]:
+                            logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
                     if Config.SERVER_TYPE=='SIGN':
                         if row[11]>time.time() and row[12]+row[13]<row[14]:
                             logging.info('db start server at port [%s] pass [%s]' % (row[0], row[4]))
