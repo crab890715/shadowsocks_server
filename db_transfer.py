@@ -139,11 +139,6 @@ class DbTransfer(object):
                         #stop disable or switch off user
                         logging.info('db stop server at port [%s] reason: disable' % (row[0]))
                         ServerPool.get_instance().del_server(row[0])
-                        #固定流量超额停止服务
-                    elif row[1] + row[2] >= row[3] and (row[7] in [0,3]):
-                        #stop out bandwidth user
-                        logging.info('db stop server at port [%s] reason: out bandwidth' % (row[0]))
-                        ServerPool.get_instance().del_server(row[0])
                         #包月限流超额停止服务
                     elif row[10] + row[9] >= row[8] and (row[7] in [1]):
                         #stop out bandwidth user
